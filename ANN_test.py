@@ -19,8 +19,8 @@ x = np.transpose(x_append)
 label = range(10)
 label[0] = 10
 y_matrix = np.array([[int(label[label_count] == Y[idx, 0]) for idx in range(Y.shape[0])] for label_count in range(10)])
-print(x.shape)
-print(y_matrix.shape)
+#print(x.shape)
+#print(y_matrix.shape)
 
 def sigmoid(z):
     return 1 / (1 + np.exp(-z))
@@ -92,18 +92,18 @@ def Loss_function(W_l, x_l, y_l, W1_l, W2_l, lambda_l):
     loss_l /= float(x_l.shape[1])
     #print(loss_l * float(x_l.shape[1]))
     #Regularization#####################################################################
-    #reg_l = 0.0
-    #for il in range(W1_l.shape[0]):
-     #   for jl in range(W1_l.shape[1] - 1):
-      #      reg_l += W1_l[il, jl + 1]**2
-    #for il in range(W2_l.shape[0]):
-     #   for jl in range(W2_l.shape[1]):
-      #      reg_l += W2_l[il, jl]**2
+    reg_l = 0.0
+    for il in range(W1_l.shape[0]):
+        for jl in range(W1_l.shape[1] - 1):
+            reg_l += W1_l[il, jl + 1]**2
+    for il in range(W2_l.shape[0]):
+        for jl in range(W2_l.shape[1]):
+            reg_l += W2_l[il, jl]**2
 
-    #reg_l /=  2 * float(x_l.shape[1])
-    #reg_l *= lambda_l
-    #loss_l += reg_l
-    # Regularization####################################################################
+    reg_l /=  2 * float(x_l.shape[1])
+    reg_l *= lambda_l
+    loss_l += reg_l
+    #Regularization####################################################################
     return loss_l
 
 def Back_Prop(x_b, y_b, W1_b, W2_b):
@@ -151,11 +151,11 @@ def gradient(W_g, x_g, y_g, W1_g, W2_g, lambda_g):
         GW1_g += BP[0]
         GW2_g += BP[1]
     ####Regularization##############################################################################
-    #RW1_g = np.multiply(lambda_g / float(x_g.shape[1]), W1_g)
-    #RW2_g = np.multiply(lambda_g / float(x_g.shape[1]), W2_g)
-    #RW1_g[:, 0:1] = np.zeros((RW1_g.shape[0], 1))
-    #GW1_g += RW1_g
-    #GW2_g += RW2_g
+    RW1_g = np.multiply(lambda_g / float(x_g.shape[1]), W1_g)
+    RW2_g = np.multiply(lambda_g / float(x_g.shape[1]), W2_g)
+    RW1_g[:, 0:1] = np.zeros((RW1_g.shape[0], 1))
+    GW1_g += RW1_g
+    GW2_g += RW2_g
     ####Regularization##############################################################################
 
     GW_g = []
@@ -176,9 +176,12 @@ def gradient(W_g, x_g, y_g, W1_g, W2_g, lambda_g):
 #Back_Prop(x[:, 117:118], y_matrix[:, 117:118], W1, W2)
 #gradient(W, x, y_matrix, W1, W2, lambdaa)
 
-result = opt.fmin_tnc(func=Loss_function, x0=W, fprime=gradient, args=(x, y_matrix, W1, W2, lambdaa), options={'maxiter': 250})
+result = opt.fmin_tnc(func=Loss_function, x0=W, fprime=gradient, args=(x, y_matrix, W1, W2, lambdaa))
 W = result[0]
-
+##############################################################################################################
+#fmin = opt.minimize(fun=Loss_function, x0=W, args=(x, y_matrix, W1, W2, lambdaa), method='TNC', jac=gradient, options={'maxiter': 250})
+#W = fmin.x
+##############################################################################################################
 wcount = 0
 for i in range(W1.shape[0]):
     for j in range(W1.shape[1]):
@@ -218,6 +221,6 @@ for idx in range(y_diff.shape[1]):
  #   print(np.transpose(y_out[:, 4+i: (5+ i)]))
   #  print(np.transpose(y_matrix[:, 4+i: (5+ i)]))
 
-print(correct/ float(y_out.shape[1]))
+print(correct/ float(x.shape[1]))
 
 #Toy-problems
