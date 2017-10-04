@@ -171,10 +171,9 @@ for idx in range(x.shape[1]):
     A22 = np.dot(W2, B11) #(10, 1)
     B22 = np.array([[sigmoid(A22[ix, 0])] for ix in range(A22.shape[0])])
     y_out[:, idx: idx+1] = B22
-for i in range(100):
-    print(np.transpose(y_out[:, 4+i: (5+ i)]))
-    print(np.transpose(y_matrix[:, 4+i: (5+ i)]))
-
+#for i in range(100):
+ #   print(np.transpose(y_out[:, 4+i: (5+ i)]))
+  #  print(np.transpose(y_matrix[:, 4+i: (5+ i)]))
 
 for idx in range(y_out.shape[1]):
     maxx = max(y_out[:, idx])
@@ -183,10 +182,11 @@ for idx in range(y_out.shape[1]):
             y_out[jdx, idx] = 1
         else:
             y_out[jdx, idx] = 0
-
+y_diff = y_matrix - y_out
 correct = 0
-for idx in range(y_out.shape[1]):
-    if np.dot(np.transpose((y_out[:, idx: idx + 1] - y_matrix[:, idx: idx + 1])), (y_out[:, idx: idx + 1] - y_matrix[:, idx: idx + 1])) == 0.0:
+for idx in range(y_diff.shape[1]):
+    print(np.dot(np.transpose(y_diff[:, idx: idx+1]), y_diff[:, idx: idx+1]))
+    if np.dot(np.transpose(y_diff[:, idx: idx+1]), y_diff[:, idx: idx+1]) == 0.0:
         correct += 1
 
 #for i in range(5):
