@@ -36,11 +36,12 @@ y_out = np.zeros(y_matrix.shape)
 #Tunable Parameters
 lambdaa = 1.0 #Regularization constant (Don't know how it works)
 hidden_size = 25 #Size of the hidden layer.
-init_const = 1.0 #Used to initialize the weight matrices.
+init_const1 = 0.1186 #Used to initialize the weight matrices.
+init_const2 = 0.414 #Used to initialize the weight matrices.
 output_size = 10 #Size of the output layer.
 
-W1 = np.array([[np.random.uniform(-init_const, init_const) for i in range(x.shape[0])] for j in range(hidden_size)])
-W2 = np.array([[np.random.uniform(-init_const, init_const) for i in range(hidden_size)] for j in range(output_size)])
+W1 = np.array([[np.random.uniform(-init_const1, init_const1) for i in range(x.shape[0])] for j in range(hidden_size)])
+W2 = np.array([[np.random.uniform(-init_const2, init_const2) for i in range(hidden_size)] for j in range(output_size)])
 #print(W1.shape) #(4, 3)
 #print(W2.shape) #(2, 4)
 wcount= 0
@@ -175,7 +176,7 @@ def gradient(W_g, x_g, y_g, W1_g, W2_g, lambda_g):
 #Back_Prop(x[:, 117:118], y_matrix[:, 117:118], W1, W2)
 #gradient(W, x, y_matrix, W1, W2, lambdaa)
 
-result = opt.fmin_tnc(func=Loss_function, x0=W, fprime=gradient, args=(x, y_matrix, W1, W2, lambdaa))
+result = opt.fmin_tnc(func=Loss_function, x0=W, fprime=gradient, args=(x, y_matrix, W1, W2, lambdaa), options={'maxiter': 250})
 W = result[0]
 
 wcount = 0
