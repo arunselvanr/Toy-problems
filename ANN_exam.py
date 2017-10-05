@@ -3,171 +3,188 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import scipy.optimize as opt
+from scipy.io import loadmat
 #%matplotlib inline
-
+#from sklearn.preprocessing import OneHotEncoder
 import os
 path = os.getcwd() + '/ex2data2.txt'
 data = pd.read_csv(path, header=None, names=['Exam 1', 'Exam 2', 'Admitted'])
 data.insert(0, 'Ones', 1.0)
+x = np.array([data.iloc[:, idx] for idx in range(data.shape[1] - 1)]) #x.shape = (3, 118)
+y = np.transpose(np.array([data.iloc[:, -1]])) #y.shape = (118, 1)
 #data.insert(0, 'Ones-again', 1.0)
+#data = loadmat('ex3data1.mat')
+#x = data["X"]
+#Y = data['y']
+#x_append = np.insert(x, 0, 1.0, axis = 1) # (5000, 401)
+#x = np.transpose(x_append)
+label = range(2)
 
-#def tanh(z):
- #   return (np.exp(z) - np.exp(-z)) / (np.exp(z) + np.exp(-z))
-
-#def gra_tanh(z):
- #   return (1 - np.power(tanh(z), 2))
+y_matrix = np.array([[int(label[label_count] == y[idx, 0]) for idx in range(y.shape[0])] for label_count in range(2)])
+#print(x.shape)
+#print(y_matrix.shape)
 
 def sigmoid(z):
-    return 1 / (1 + np.exp(-z))
+    return (1 / float(1 + np.exp(-z)))
 
 def grad_sigmoid(z):
-    return (np.exp(-z) / float(np.power((1 + np.exp(-z)), 2)))
+    return (sigmoid(z) * (1 - sigmoid(z)))
 
-x = np.array([data.iloc[:, idx] for idx in range(data.shape[1] - 1)])
-#x.shape = (3, 118)
-y = np.transpose(np.array([data.iloc[:, -1]])) #y.shape = (118, 1)
-label = range(2)
-y_matrix = np.array([[int(label[label_count] == y[idx, 0])
-                                   for idx in range(y.shape[0])] for label_count in range(2)])
+#x = np.array([data.iloc[:, idx] for idx in range(data.shape[1] - 1)])
+#y = np.array([data.iloc[:, -1]])
+#label = range(2)
+#y_matrix = np.array([[int(label[label_count] == y[0, idx]) for idx in range(y.shape[1])] for label_count in range(2)])
 y_out = np.zeros(y_matrix.shape)
-
 #Tunable Parameters
 lambdaa = 1.0 #Regularization constant (Don't know how it works)
 hidden_size = 10 #Size of the hidden layer.
-init_const = 1 #Used to initialize the weight matrices.
+init_const1 = np.sqrt(6 / 7.0) #Used to initialize the weight matrices.
+init_const2 = 1.0 #Used to initialize the weight matrices.
 output_size = 2 #Size of the output layer.
-###################################finding polynomial features###########################################
-W1 = np.array([[np.random.normal(0.0, 1.0) * init_const for idx in range(x.shape[0])]
-              for jdx in range(hidden_size)])
-W2 = np.array([[np.random.normal(0.0, 1.0) * init_const for idx in range(hidden_size)]
-              for jdx in range(output_size)])
-W = [np.random.normal(0.0, 1.0) * init_const for idx in
-     range(W1.shape[0]*W1.shape[1] + W2.shape[0]*W2.shape[1])]
-#print(W1.shape) #(25, 401)
-#print(W2.shape) #(10, 25)
+maxiteration = 10000
 
-def feed_forward(xf, yf, W1f, W2f):
-    #xf.shape = (401, 1)
-    A1f = np.dot(W1f, xf) #(25, 1)
-    #print(A1f.shape)
-    B1f = np.array([[sigmoid(A1f[ix, 0])] for ix in range(A1f.shape[0])]) #(25, 1)
-    #print(B1f.shape)
-    A2f = np.dot(W2f, B1f) #(10, 1)
-    #print(A2f.shape)
-    B2f = np.array([[sigmoid(A2f[ix, 0])] for ix in range(A2f.shape[0])]) #(10, 1)
-    #print(B2f.shape)
-    lossf = np.sum((yf * np.log(B2f)) +
-                   ((1 - yf) * (1 - np.log(B2f))))
-    return(lossf)
+W1 = np.array([[np.random.uniform(-init_const1, init_const1) for i in range(x.shape[0])] for j in range(hidden_size)])
+W2 = np.array([[np.random.uniform(-init_const2, init_const2) for i in range(hidden_size)] for j in range(output_size)])
+#print(W1.shape) #(4, 3)
+#print(W2.shape) #(2, 4)
+wcount= 0
+W = []
+for i in range(W1.shape[0]):
+    for j in range(W1.shape[1]):
+        W.append(W1[i,j])
+for i in range(W2.shape[0]):
+    for j in range(W2.shape[1]):
+        W.append(W2[i,j])
 
-def loss(xl, yl, W1l, W2l, lambdal):
-    lossl = 0.0
+def Feed_Forward(x_f, y_f, W1_f, W2_f):
+    A1_f = np.dot(W1_f, x_f)
+    #print(A1_f)
+    B1_f = np.array([[sigmoid(A1_f[ixf, 0])] for ixf in range(A1_f.shape[0])])
+    #print(B1_f)
+    A2_f = np.dot(W2_f, B1_f)
+    #print(A2_f)
+    B2_f = np.array([[sigmoid(A2_f[ixf, 0])] for ixf in range(A2_f.shape[0])])
+    #print(B2_f)
 
-    for count in range(xl.shape[1]):
-        lossl -= feed_forward(xl[:, count: (count + 1)], yl[:, count: (count + 1)], W1l, W2l)
-        #print(lossl)
-    lossl /= float(xl.shape[1])
-    #Now for the regularizer term
-    reg = 0.0
-    #Sum up the squares of all elements of W1 except those from the first column
-    for row_c in range(W1l.shape[0]):
-        for col_c in range(W1l.shape[1] - 1):
-            reg += np.power(W1l[row_c, col_c + 1], 2)
-    #Now sum up all from W2
-    for row_c in range(W2l.shape[0]):
-        for col_c in range(W2l.shape[1]):
-            reg += np.power(W2l[row_c, col_c], 2)
+    #Now to calculate the loss function
+    #print(y_f * np.log(B2_f))
+    #print((1 - y_f) * np.log(1 - B2_f))
+    #print((y_f * np.log(B2_f)) + ((1 - y_f) * np.log(1 - B2_f)))
+    loss_f = - np.sum((y_f * np.log(B2_f)) + ((1 - y_f) * np.log(1 - B2_f)))
+    return loss_f
 
-    reg *= lambdal
-    reg /= float(2 * xl.shape[1])
-    reg = 0.0
-    return (lossl + reg)
+def Loss_function(W_l, x_l, y_l, W1_l, W2_l, lambda_l):
+    wcountl = 0
+    for il in range(W1_l.shape[0]):
+        for jl in range(W1_l.shape[1]):
+            W1_l[il, jl] = W_l[wcountl]
+            wcountl += 1
+    #print(W_l[wcountl:])
+    for il in range(W2_l.shape[0]):
+        for jl in range(W2_l.shape[1]):
+            W2_l[il, jl] = W_l[wcountl]
+            wcountl += 1
+    #print(W2_l)
+    loss_l = 0.0
+    for run in range(x_l.shape[1]):
+        #print(run)
+        #print(y_l[:, run: run+1])
+        #print(x_l[:, run: run + 1])
+        loss_l += Feed_Forward(x_l[:, run: run + 1], y_l[:, run: run +1], W1_l, W2_l)
+    #print(loss_l)
+    loss_l /= float(x_l.shape[1])
+    #print(loss_l * float(x_l.shape[1]))
+    #Regularization#####################################################################
+#    reg_l = 0.0
+ #   for il in range(W1_l.shape[0]):
+  #      for jl in range(W1_l.shape[1] - 1):
+   #         reg_l += W1_l[il, jl + 1]**2
+    #for il in range(W2_l.shape[0]):
+     #   for jl in range(W2_l.shape[1]):
+      #      reg_l += W2_l[il, jl]**2
 
-def Loss_function(WL, xL, yL, W1L, W2L, lambdaL):
-    W_count = 0
-    for i in range(W1L.shape[0]):
-        for j in range(W1L.shape[1]):
-            W1L[i,j] = WL[W_count]
-            W_count += 1
+#    reg_l /=  2 * float(x_l.shape[1])
+ #   reg_l *= lambda_l
+  #  loss_l += reg_l
+    #Regularization####################################################################
+    return loss_l
 
-    for i in range(W2L.shape[0]):
-        for j in range(W2L.shape[1]):
-            W2L[i,j] = WL[W_count]
-            W_count += 1
+def Back_Prop(x_b, y_b, W1_b, W2_b):
+    A1_b = np.dot(W1_b, x_b)
+    gradA1_b = np.array([[grad_sigmoid(A1_b[ixb, 0])] for ixb in range(A1_b.shape[0])])
+    B1_b = np.array([[sigmoid(A1_b[ixb, 0])] for ixb in range(A1_b.shape[0])])
+    A2_b = np.dot(W2_b, B1_b)
+    B2_b = np.array([[sigmoid(A2_b[ixb, 0])] for ixb in range(A2_b.shape[0])])
 
-    return loss(xL, yL, W1L, W2L, lambdaL)
+    GA2_b = B2_b - y_b #Partial derivative with respect to the inputs to the output layer.
+    GB1_b = np.dot(np.transpose(W2_b), GA2_b) #Partial derivative with respect to the outputs of hidden layer.
+    GA1_b = np.multiply(gradA1_b, GB1_b) #Partial derivative with respect to the inputs of hidden layer.
+    #print(GA2_b)
+    #print(W2_b)
+    #print(np.transpose(W2_b))
+    #print(GA2_b)
+    #print(np.transpose(GB1_b))
+    #print(gradA1_b)
+    #print(GA1_b)
+    #print(np.transpose(x_b))
+    GW1_b = np.dot(GA1_b, np.transpose(x_b)) #Derivative wrt weight W1
+    GW2_b = np.dot(GA2_b, np.transpose(B1_b)) #Derivative wrt weight W2
+    #print(GW1_b)
+    #print(1/ float(x.shape[1]))
+    GW1_b = np.multiply(1 / float(x.shape[1]), GW1_b)
+    GW2_b = np.multiply(1 / float(x.shape[1]), GW2_b)
+    #print(GW1_b)
+    return [GW1_b, GW2_b]
 
-def BP(xb, yb, W1b, W2b, lambdab):
-    #We require yg and xb to be a column vector
-    A1b = np.dot(W1b, xb)  # (25, 1)
-    B1b = np.array([[sigmoid(A1b[ix, 0])] for ix in range(A1b.shape[0])])  # (25, 1)
-    A2b = np.dot(W2b, B1b)  # (10, 1)
-    B2b = np.array([[sigmoid(A2b[ix, 0])] for ix in range(A2b.shape[0])])  # (10, 1)
+def gradient(W_g, x_g, y_g, W1_g, W2_g, lambda_g):
+    wcountg = 0
+    for ig in range(W1_g.shape[0]):
+        for jg in range(W1_g.shape[1]):
+            W1_g[ig, jg] = W_g[wcountg]
+            wcountg += 1
+    for ig in range(W2_g.shape[0]):
+        for jg in range(W2_g.shape[1]):
+            W2_g[ig, jg] = W_g[wcountg]
+            wcountg += 1
 
-    GA2 = B2b - yb
-    GA1 = np.zeros((hidden_size, 1))
-    #grad_A1 = np.array([[grad_sigmoid(A1b[ix, 0])] for ix in range(A1b.shape[0])])  # (25, 1)
+    GW1_g = np.zeros(W1_g.shape)
+    GW2_g = np.zeros(W2_g.shape)
+    for ixg in range(x_g.shape[1]):
+        BP = Back_Prop(x_g[:, ixg: ixg +1], y_g[:, ixg: ixg +1], W1_g, W2_g)
+        GW1_g += BP[0]
+        GW2_g += BP[1]
+    ####Regularization##############################################################################
+#    RW1_g = np.multiply(lambda_g / float(x_g.shape[1]), W1_g)
+ #   RW2_g = np.multiply(lambda_g / float(x_g.shape[1]), W2_g)
+  #  RW1_g[:, 0:1] = np.zeros((RW1_g.shape[0], 1))
+   # GW1_g += RW1_g
+    #GW2_g += RW2_g
+    ####Regularization##############################################################################
 
-    for ix in range(hidden_size):
-        GA1[ix, 0] = np.dot(np.transpose(W2b[:, ix:(ix + 1)]), GA2) * grad_sigmoid(A1b[ix, 0])
+    GW_g = []
+    for ig in range(GW1_g.shape[0]):
+        for jg in range(GW1_g.shape[1]):
+            GW_g.append(GW1_g[ig, jg])
+    for ig in range(GW2_g.shape[0]):
+        for jg in range(GW2_g.shape[1]):
+            GW_g.append(GW2_g[ig, jg])
 
-    GW2 = np.dot(GA2, np.transpose(B1b)) #(10, 25)
-    GW1 = np.dot(GA1, np.transpose(xb)) #(25, 401)
+    #print(GW1_g)
+    #print(GW2_g)
+    #print(GW_g[12:])
+    return GW_g
 
-    return [GW1, GW2]
-
-def gradient(Wg, xg, yg, W1g, W2g, lambdag):
-    W_count = 0
-    for i in range(W1g.shape[0]):
-        for j in range(W1g.shape[1]):
-            W1g[i, j] = Wg[W_count]
-            W_count += 1
-
-    for i in range(W2g.shape[0]):
-        for j in range(W2g.shape[1]):
-            W2g[i, j] = Wg[W_count]
-            W_count += 1
-
-    GW1g = np.zeros(W1g.shape)
-    GW2g = np.zeros(W2g.shape)
-    for count in range(xg.shape[1]):
-        BP_call = BP(xg[:, count: (count + 1)], yg[:, count: (count + 1)], W1g, W2g, lambdag)
-        GW1g += BP_call[0]
-        GW2g += BP_call[1]
-    #print(GW1g)
-    GW1g = np.multiply(1 / float(xg.shape[1]), GW1g)
-    #print(np.multiply(float(xg.shape[1]), GW1g))
-    GW2g = np.multiply(1 / float(xg.shape[1]), GW2g)
-
-    #Now for the regularization terms
-    #GW1g += np.multiply((lambdag / float(xg.shape[1])), W1g)
-    #GW1g[:, 0:1] -= np.multiply((lambdag / float(xg.shape[1])), W1g[:, 0:1])
-    #GW2g += np.multiply(lambdag / float(xg.shape[1]), W2g)
-
-    #Reassign the gradient vector
-    GW = [0.0  for ix in range(len(Wg))]
-    W_count = 0
-    for i in range(GW1g.shape[0]):
-        for j in range(GW1g.shape[1]):
-            GW[W_count]  = GW1g[i, j]
-            W_count += 1
-
-    for i in range(GW2g.shape[0]):
-        for j in range(GW2g.shape[1]):
-            GW[W_count] = GW2g[i, j]
-            W_count += 1
-    #return [GW1g, GW2g]
-    return GW #Use this if using a scipy gradient descent
-
-##################Using scipy########################################
+#print(Feed_Forward(x[:, 0:1], y_matrix[:, 0:1], W1, W2))
+#print(Loss_function(W, x, y_matrix, W1, W2, lambdaa))
+#Back_Prop(x[:, 117:118], y_matrix[:, 117:118], W1, W2)
+#gradient(W, x, y_matrix, W1, W2, lambdaa)
 
 #result = opt.fmin_tnc(func=Loss_function, x0=W, fprime=gradient, args=(x, y_matrix, W1, W2, lambdaa))
 #W = result[0]
-#print(W)
-fmin = opt.minimize(fun=Loss_function, x0=W, args=(x, y_matrix, W1, W2, lambdaa),
-                method='TNC', jac=gradient)#, options={'maxiter': 10000})
-print(fmin)
+##############################################################################################################
+fmin = opt.minimize(fun=Loss_function, x0=W, args=(x, y_matrix, W1, W2, lambdaa), method='TNC', jac=gradient, options={'maxiter': maxiteration})
 W = fmin.x
+##############################################################################################################
 wcount = 0
 for i in range(W1.shape[0]):
     for j in range(W1.shape[1]):
@@ -178,13 +195,6 @@ for i in range(W2.shape[0]):
     for j in range(W2.shape[1]):
         W2[i, j] = W[wcount]
         wcount += 1
-###############handwritten GD###############
-#learning_rate = np.exp(-2)
-#for step_size in range(200):
- #   grad_call = gradient(W, x, y_matrix, W1, W2, lambdaa)
-  #  W1 -= np.multiply(learning_rate, grad_call[0])
-   # W2 -= np.multiply(learning_rate, grad_call[1])
-
 
 for idx in range(x.shape[1]):
     A11 = np.dot(W1, x[:, idx: idx +1]) #(25, 1)
@@ -192,11 +202,9 @@ for idx in range(x.shape[1]):
     A22 = np.dot(W2, B11) #(10, 1)
     B22 = np.array([[sigmoid(A22[ix, 0])] for ix in range(A22.shape[0])])
     y_out[:, idx: idx+1] = B22
-    print(np.transpose(B22))
-
-#for i in range(5):
-    #print(np.transpose(y_out[:, 100+i: (101+ i)]))
-    #print(np.transpose(y_matrix[:, 100+i: (101+ i)]))
+#for i in range(100):
+ #   print(np.transpose(y_out[:, 4+i: (5+ i)]))
+  #  print(np.transpose(y_matrix[:, 4+i: (5+ i)]))
 
 for idx in range(y_out.shape[1]):
     maxx = max(y_out[:, idx])
@@ -205,18 +213,17 @@ for idx in range(y_out.shape[1]):
             y_out[jdx, idx] = 1
         else:
             y_out[jdx, idx] = 0
-
+y_diff = y_matrix - y_out
 correct = 0
-for idx in range(y_out.shape[1]):
-    if np.dot(np.transpose((y_out[:, idx: idx + 1] - y_matrix[:, idx: idx + 1])), (y_out[:, idx: idx + 1] - y_matrix[:, idx: idx + 1])) == 0.0:
+for idx in range(y_diff.shape[1]):
+    #print(np.dot(np.transpose(y_diff[:, idx: idx+1]), y_diff[:, idx: idx+1]))
+    if np.dot(np.transpose(y_diff[:, idx: idx+1]), y_diff[:, idx: idx+1]) == 0.0:
         correct += 1
 
-print(correct/ float(y_out.shape[1]))
+#for i in range(5):
+ #   print(np.transpose(y_out[:, 4+i: (5+ i)]))
+  #  print(np.transpose(y_matrix[:, 4+i: (5+ i)]))
 
+print(correct/ float(x.shape[1]))
 
-#feed_forward(x[:, 0:1], y_matrix[:, 0:1], W1, W2)
-#loss(x, y_matrix, W1, W2, lambdaa)
-#Loss_function(W, x, y_matrix, W1, W2, lambdaa)
-#BP(x[:, 0:1], y_matrix[:, 0:1], W1, W2, lambdaa)
-gradient(W, x, y_matrix, W1, W2, lambdaa)
-
+#Toy-problems
