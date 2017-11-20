@@ -30,18 +30,18 @@ y_test = np_utils.to_categorical(y_test, 10)
 
 #Let start building the model
 model = Sequential()
-model.add(Convolution2D(32, (4, 4), activation='relu', data_format='channels_first', input_shape=(1, 28, 28)))
-model.add(Convolution2D(32, (4,4)))
+model.add(Convolution2D(50, (3, 3), activation='relu', data_format='channels_first', input_shape=(1, 28, 28)))
+model.add(Convolution2D(50, (3,3)))
 model.add(MaxPooling2D(pool_size=(2,2)))
 model.add(Dropout(.25))
 model.add(Flatten())
-model.add(Dense(30, activation='relu'))
-model.add(Dropout(.4))
+model.add(Dense(40, activation='relu'))
+model.add(Dropout(.5))
 model.add(Dense(10, activation='softmax'))
 #model.summary()
 
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-model.fit(x_train, y_train, batch_size=32, epochs=10, verbose=1)
+model.fit(x_train, y_train, batch_size=32, epochs=6, verbose=1)
 score = model.evaluate(x_test, y_test, verbose=1)
 
 print(score)
